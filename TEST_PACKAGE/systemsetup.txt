@@ -1,0 +1,68 @@
+sudo apt-get update
+sudo apt install unzip
+sudo apt install make
+sudo apt --yes --force-yes install gcc
+sudo file -s /dev/nvme0n1
+sudo mkfs -t xfs /dev/nvme0n1
+sudo mkdir /data
+sudo mount /dev/nvme0n1 /data
+sudo mv tpc-h-tool.zip /data
+cd /data
+sudo unzip tpc-h-tool.zip
+sudo chmod -R 777 /data/2.18.0_rc2/dbgen
+cd 2.18.0_rc2/dbgen
+sudo mv /home/ubuntu/TEST_PACKAGE /data
+cp /data/TEST_PACKAGE/TPCHMakefile Makefile
+make
+./dbgen -s 10 -T L
+for i in `ls *.tbl`; do sed 's/|$//' $i > ${i/tbl/csv}; echo $i; done;
+cd /data
+sudo mkdir /home/ubuntu/export
+sudo chmod 777 /home/ubuntu/export
+sudo apt install --yes --force-yes postgresql postgresql-contrib
+sudo systemctl stop postgresql
+sudo cp /data/TEST_PACKAGE/postgresql.conf /etc/postgresql/10/main/postgresql.conf
+sudo mkdir /data/main
+sudo chown postgres:postgres /data/main
+sudo chmod -R 777 /data/main
+sudo su - postgres
+/usr/lib/postgresql/10/bin/initdb -D /data/main/data
+exit
+sudo systemctl start postgresql
+sudo -u postgres psql -c "tpch"
+sudo -u postgres psql -f /data/TEST_PACKAGE/postgres-create-lineitem.sql
+
+
+
+
+
+
+
+sudo apt-get update
+sudo apt install awscli
+sudo file -s /dev/nvme0n1
+sudo mkfs -t xfs /dev/nvme0n1
+sudo mkdir /data
+sudo mount /dev/nvme0n1 /data
+sudo mkdir /data/2.18.0_rc2
+sudo mkdir /data/2.18.0_rc2/dbgen
+sudo chmod -R 777 /data/2.18.0_rc2/dbgen
+sudo mv /home/ubuntu/TEST_PACKAGE /data
+aws s3 cp s3://misc-files-ak/TEST_PACKAGE/lineitem.csv /data/2.18.0_rc2/dbgen/lineitem.csv 
+sudo mkdir /home/ubuntu/export
+sudo chmod 777 /home/ubuntu/export
+sudo apt install --yes --force-yes postgresql postgresql-contrib
+sudo systemctl stop postgresql
+sudo cp /data/TEST_PACKAGE/postgresql.conf /etc/postgresql/10/main/postgresql.conf
+sudo mkdir /data/main
+sudo chown postgres:postgres /data/main
+sudo chmod -R 777 /data/main
+sudo su - postgres
+/usr/lib/postgresql/10/bin/initdb -D /data/main/data
+exit
+sudo systemctl start postgresql
+sudo -u postgres psql
+
+create database tpch;
+\c tpch;
+\i /data/TEST_PACKAGE/postgres-create-lineitem.sql
